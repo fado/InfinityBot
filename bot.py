@@ -87,7 +87,7 @@ async def on_message(message):
             # Question has been answered so let's make a note of that.
             question_pending = False
 
-            # Announce hte current scores.
+            # Announce the current scores.
             score_string = ""
             for scorer in scores.keys():
                 score_string += "**" + scorer + "**: "+ str(scores[scorer]) +" "
@@ -106,6 +106,24 @@ async def on_message(message):
                 scores = {}
 
     await bot.process_commands(message)
+
+
+@bot.command()
+async def score():
+    """
+    Can't figure how how to do this the DRY way so I'm duplicating code from on_message() here until I can figure
+    out how to make the bot call its own commands.
+    :return:
+    """
+    global scores
+
+    if len(scores) == 0:
+        await bot.say("No scores yet!")
+    else :
+        score_string = ""
+        for scorer in scores.keys():
+            score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
+        await bot.say("Scores: " + score_string)
 
 
 @bot.command()

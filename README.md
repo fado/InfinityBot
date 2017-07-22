@@ -21,6 +21,6 @@ Now you need to add your bot's API token to your environment variables.
 
 And you're done.  Just run <code>python bot.py</code> to start the bot.  Note that your token will only be in your environment variables for the duration of your current session.  If you want to add it permanently, you'll need to add it to your <code>.bash_profile</code>.
 
-To add more questions, add them in the following format:
+To add more questions, add a new line to <code>questions.txt</code> in the following format:
 <pre><code>Question ID | Question | Answer</pre></code>
 FYI, I was too lazy to add any checks to make sure the question IDs were unique.  I probably should have it create the IDs programatically, but like I said, I was drunk.  

@@ -16,7 +16,7 @@ $ cd InfinityBot
 </pre></code>
 
 Now you need to add your bot's API token to your environment variables.
-<pre><code>export TOKEN=YourTokenHere
+<pre><code>$ export TOKEN=YourTokenHere
 </pre></code>
 
 And you're done.  Just run <code>python bot.py</code> to start the bot.  Note that your token will only be in your environment variables for the duration of your current session.  If you want to add it permanently, you'll need to add it to your <code>.bash_profile</code>.

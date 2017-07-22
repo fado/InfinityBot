@@ -1,0 +1,186 @@
+"""
+    InfinityBot - A Discord bot to help people learn the rules of the Infinity RPG.
+    Copyright (C) 2017 Padraig Donnelly
+    pdonnelly@runbox.com
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+    https://opensource.org/licenses/GPL-3.0
+"""
+
+import discord
+import logging
+import os
+import random
+import time
+
+from discord.ext import commands
+
+# BOT STUFF
+log = logging.getLogger()
+description = '''InfinityBot!  Learning is fun!'''
+# You can set the command prefix here.  In the default cause '.quiz' will invoke the bot.
+bot = commands.Bot(command_prefix='.', description=description, pm_help=True)
+client = discord.Client()
+
+# QUIZ STUFF
+lines = []
+recent_questions  = []
+question_pending = False
+current_question = ""
+current_answer = ""
+scores = {}
+
+
+@bot.event
+async def on_ready():
+    log.info("Logged in as {0} with ID {1}".format(bot.user.name, bot.user.id))
+    bot.start_time = time.time()
+
+
+@bot.event
+async def on_message(message):
+    """
+    Parses all incoming messages.  Ignores itself.  Checks to see if the last message was the answer to the
+    current question, otherwise it does some other bits of fun parsing.
+    :param message: The last message typed into the channel.
+    :return:
+    """
+    global question_pending, current_answer, punch_counter, scores
+
+    # Stop the bot from responding to its own utterences.
+    if message.author.bot:
+        return
+
+    # Only run this block if there is a question pending.
+    if question_pending:
+
+        # Check if the current message is the answer to the question.
+        if str(message.content).lower() in current_answer.split(','):
+            log.info("Correct answer given.")
+            await bot.send_message(message.channel, "Correct!")
+            await bot.send_message(message.channel, "This is the part where I give **" +
+                                   str(message.author.name) + "** a point.")
+
+            # Increase the player's score.
+            scorer = str(message.author.name)
+
+            # If they're not already in the scores dict, add them.
+            if scorer not in scores.keys():
+                scores[scorer] = 1
+
+            # Otherwise just increase their score by one.
+            else:
+                scores[scorer] = scores[scorer] + 1
+
+            # Question has been answered so let's make a note of that.
+            question_pending = False
+
+            # Announce hte current scores.
+            score_string = ""
+            for scorer in scores.keys():
+                score_string += "**" + scorer + "**: "+ str(scores[scorer]) +" "
+            await bot.send_message(message.channel, "Scores: "+ score_string)
+
+            # Make sure the size of the question pool isn't zero.  If it is, announce winner and reset.
+            if len(lines) == 0:
+                await bot.send_message(message.channel, "All the questions have been answered!")
+                await bot.send_message(message.channel, "Winner is: "+ str(max(scores, key=scores.get)))
+                await bot.send_message(message.channel, "Resetting!")
+
+                # Add all the questions back in.
+                init_questions()
+
+                # Reset the scores.
+                scores = {}
+
+    await bot.process_commands(message)
+
+
+@bot.command()
+async def quiz():
+    """
+    Handles the behaviour of the .quiz command.  Will select a question at random, then remove it from the list
+    so that it doesn't get asked again in the current round.  If there is already a question pending, it will
+    let the players know and repeat the question in case they missed it.
+    :return:
+    """
+    global question_pending, current_question, current_answer, lines
+
+    # Make sure we're not waiting for an answer already.
+    if not question_pending:
+            # Pick one of the remaining questions at random.
+            random_line = random.choice(lines)
+
+            # Tokenize the line.
+            tokens = random_line.split('|')
+            question_id = str(tokens[0])
+            current_question = str(tokens[1])
+            current_answer = str(tokens[2])
+
+            # Verify which question we picked.
+            log.info("Chose question "+ question_id +" at random.")
+
+            # Now remove it from the list so it doesn't get asked again soon.
+            log.info("Removing question from the list.")
+            lines.remove(random_line)
+
+            # Verify that it's gone.
+            remaining_question_ids = []
+            for line in lines:
+                remaining_question_ids.append(line.split('|')[0])
+
+            # We now have a question pending so let's make a note of that.
+            question_pending = True
+
+            # Ask the question.
+            await bot.say(current_question)
+    else:
+        await bot.say("You haven't answered my last question yet:")
+        await bot.say(current_question)
+
+
+def init_questions():
+    """
+    Reads the questions in from a text file.  Catches FileNotFoundError.
+    :return:
+    """
+    global lines
+
+    try:
+        lines = open('questions.txt').read().splitlines()
+    # Make sure the file is actually there.
+    except FileNotFoundError:
+        log.warn('Question file not found.')
+
+
+if __name__ == '__main__':
+    formatter = logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s")
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(formatter)
+    log.addHandler(consoleHandler)
+
+    logging.getLogger("discord").setLevel(logging.WARN)
+    log.setLevel(logging.INFO)
+    log.info('Starting InfinityBot.')
+
+    init_questions()
+
+    try:
+        # Replace 'TOKEN' here with the name of the environment variable you are using to store your API token.
+        bot.run(os.environ['TOKEN'])
+    except KeyError:
+        log.warn('Environment variable not found.')
+    except KeyboardInterrupt:
+        log.warn('Stopping InfinityBot.')

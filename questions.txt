@@ -1,8 +1,6 @@
 1|A GM can choose to add this much Heat to the pool if a player suffers a complication.|2
 2|What is the maximum number of bonus d20s that can be added to a roll?|3
 3|How much Momentum does it cost to increase the difficulty of an oppoent's roll by 3?|6
-3|How much Momentum does it cost to increase the difficulty of an oppoent's roll by 2?|3
-3|How much Momentum does it cost to increase the difficulty of an oppoent's roll by 1?|1
 4|What is the name of the Warfare action that allows a player to attempt a recovery test to end a condition that afflicts them or a piece of equipment they are using?|absterge
 5|What kind of action is the Warfare action Absterge?  Is it Free, Minor or Standard?|minor
 6|What is the difficulty of Absterge if the condition does not have a specific rating?|d2,challenging,2
@@ -71,7 +69,7 @@
 69|How many Combat Dice worth of Cover Soak does Heavy cover provide?|4
 70|How many Combat Dice worth of Cover Soak does a light saturation zone provide?|2
 71|How many Combat Dice worth of Cover Soak does a heavy saturation zone provide?|4
-72|How much damage to exposure to vacuum case?|1+5[CD]
+72|How much damage does exposure to vacuum cause?|1+5[CD]
 73|Name either of the attack qualities that exposure to vacuum has?|stun,vicious
 74|What kind of action is the Warfare action Draw Item?  Is it Free, Minor or Standard?|minor
 75|What kind of action is the Warfare action Drop Item?  Is it Free, Minor or Standard?|free
@@ -100,3 +98,5 @@
 97|The portion of a person's social cloud that is visible in the AR immediately around them is called their what?|halo
 98|The data trail that a person lives behind them is called their what?|data shadow
 99|Holographically projecting yourself into the augmented reality of people at a difference location is known as what?|ghosting
+101|How much Momentum does it cost to increase the difficulty of an oppoent's roll by 2?|3
+102|How much Momentum does it cost to increase the difficulty of an oppoent's roll by 1?|1

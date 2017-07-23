@@ -85,10 +85,8 @@ async def on_message(message):
             else:
                 scores[scorer] = scores[scorer] + 1
 
-            # Question has been answered so let's make a note of that.
+            # Let's clean up.
             question_pending = False
-
-            # And let's clear the state of pass_pending too.
             pass_pending = False
 
             # Announce the current scores.
@@ -126,6 +124,10 @@ async def on_message(message):
                 # Otherwise just decrease their score by one.
                 else:
                     scores[scorer] = scores[scorer] - 1
+
+                # Let's clean up.
+                question_pending = False
+                pass_pending = False
 
                 # Again, can't figure out how to do this the DRY wait yet, so repeating myself.  Sorry.
                 # Announce the current scores.

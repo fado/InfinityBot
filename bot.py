@@ -58,7 +58,7 @@ async def on_message(message):
     :param message: The last message typed into the channel.
     :return:
     """
-    global question_pending, current_answer, punch_counter, scores, player_passing
+    global question_pending, current_answer, punch_counter, scores, player_passing, pass_pending
 
     # Stop the bot from responding to its own utterences.
     if message.author.bot:
@@ -87,6 +87,9 @@ async def on_message(message):
 
             # Question has been answered so let's make a note of that.
             question_pending = False
+
+            # And let's clear the state of pass_pending too.
+            pass_pending = False
 
             # Announce the current scores.
             score_string = ""

@@ -66,9 +66,6 @@ async def on_message(message):
     # Only run this block if there is a question pending.
     if question_pending:
 
-        log.info(str(message.content).lower())
-        log.info(current_answer.split(','))
-
         # Check if the current message is the answer to the question.
         if str(message.content).lower() in str(current_answer.split(',')).lower():
             log.info("Correct answer given.")
@@ -149,7 +146,9 @@ async def quiz():
             question_id = str(tokens[0])
             current_question = str(tokens[1])
             current_answer = str(tokens[2])
-            log.info(type(current_answer))
+
+            # Let's see the answer in the console just for the hell of it.
+            log.info(current_answer.split(','))
 
             # Verify which question we picked.
             log.info("Chose question "+ question_id +" at random.")

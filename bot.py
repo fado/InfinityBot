@@ -41,6 +41,7 @@ question_pending = False
 current_question = ""
 current_answer = ""
 scores = {}
+pass_pending = False
 
 
 @bot.event
@@ -57,7 +58,7 @@ async def on_message(message):
     :param message: The last message typed into the channel.
     :return:
     """
-    global question_pending, current_answer, punch_counter, scores
+    global question_pending, current_answer, punch_counter, scores, player_passing
 
     # Stop the bot from responding to its own utterences.
     if message.author.bot:
@@ -73,7 +74,7 @@ async def on_message(message):
             await bot.send_message(message.channel, "This is the part where I give **" +
                                    str(message.author.name) + "** a point.")
 
-            # Increase the player's score.
+            # Let's just get their name to make the following code a bit cleaner.
             scorer = str(message.author.name)
 
             # If they're not already in the scores dict, add them.
@@ -105,6 +106,36 @@ async def on_message(message):
                 # Reset the scores.
                 scores = {}
 
+        if str(message.content).lower() == 'yes':
+
+            # Make sure the person reasponding is the person who initiated the skip.
+            if str(message.author.name) == player_passing:
+                await bot.send_message(message.channel, "Alright.  Skipping this question.  Will deduct one point"
+                                                        " from **"+ str(message.author.name) +"**.")
+
+                # Let's just get their name to make the following code a bit cleaner.
+                scorer = str(message.author.name)
+
+                # If they're not already on the board, start them with -1 points.
+                if scorer not in scores.keys():
+                    scores[scorer] = -1
+
+                # Otherwise just decrease their score by one.
+                else:
+                    scores[scorer] = scores[scorer] - 1
+
+                # Again, can't figure out how to do this the DRY wait yet, so repeating myself.  Sorry.
+                # Announce the current scores.
+                score_string = ""
+                for scorer in scores.keys():
+                    score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
+                await bot.send_message(message.channel, "Scores: " + score_string)
+
+                # Tell them the answer.
+                await bot.send_message(message.channel, "Answer was: **" + current_answer +"**.")
+            else:
+                await bot.send_message(message.channel, "You did not initiate this skip "+ str(message.author.name) +"!")
+
     await bot.process_commands(message)
 
 
@@ -124,6 +155,22 @@ async def score():
         for scorer in scores.keys():
             score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
         await bot.say("Scores: " + score_string)
+
+
+@bot.command(pass_context=True)
+async def skip(ctx):
+    """
+    Allows the player to skip a question.
+    :return:
+    """
+    global pass_pending, player_passing
+
+    if question_pending:
+        await bot.say("Are you sure you want to skip this question?  It will cost you 1 point!  (Type 'yes' to skip.)")
+        pass_pending = True
+        player_passing = ctx.message.author.name
+    else:
+        await bot.say("I haven't asked you a question yet...  (Type '.quiz'.)")
 
 
 @bot.command()

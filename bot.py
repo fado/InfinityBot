@@ -67,99 +67,70 @@ async def on_message(message):
     # Only run this block if there is a question pending.
     if question_pending:
 
-        # Check if the current message is the answer to the question.
-        if str(message.content).lower() in str(current_answer.split(',')).lower():
-            log.info("Correct answer given.")
-            await bot.send_message(message.channel, "Correct!")
-            await bot.send_message(message.channel, "This is the part where I give **" +
-                                   str(message.author.name) + "** a point.")
+        # Check if the answer was correct.
+        await check_answer(message)
 
-            # Let's just get their name to make the following code a bit cleaner.
-            scorer = str(message.author.name)
-
-            # If they're not already in the scores dict, add them.
-            if scorer not in scores.keys():
-                scores[scorer] = 1
-
-            # Otherwise just increase their score by one.
-            else:
-                scores[scorer] = scores[scorer] + 1
-
-            # Let's clean up.
-            question_pending = False
-            pass_pending = False
-
-            # Announce the current scores.
-            score_string = ""
-            for scorer in scores.keys():
-                score_string += "**" + scorer + "**: "+ str(scores[scorer]) +" "
-            await bot.send_message(message.channel, "Scores: "+ score_string)
-
-            # Make sure the size of the question pool isn't zero.  If it is, announce winner and reset.
-            if len(lines) == 0:
-                await bot.send_message(message.channel, "All the questions have been answered!")
-                await bot.send_message(message.channel, "Winner is: "+ str(max(scores, key=scores.get)))
-                await bot.send_message(message.channel, "Resetting!")
-
-                # Add all the questions back in.
-                init_questions()
-
-                # Reset the scores.
-                scores = {}
-
+        # Or check if someone is trying to initiate a skip.
         if str(message.content).lower() == 'yes':
+            await skip_question(message)
 
-            # Make sure the person reasponding is the person who initiated the skip.
-            if str(message.author.name) == player_passing:
-                await bot.send_message(message.channel, "Alright.  Skipping this question.  Will deduct one point"
-                                                        " from **"+ str(message.author.name) +"**.")
-
-                # Let's just get their name to make the following code a bit cleaner.
-                scorer = str(message.author.name)
-
-                # If they're not already on the board, start them with -1 points.
-                if scorer not in scores.keys():
-                    scores[scorer] = -1
-
-                # Otherwise just decrease their score by one.
-                else:
-                    scores[scorer] = scores[scorer] - 1
-
-                # Let's clean up.
-                question_pending = False
-                pass_pending = False
-
-                # Again, can't figure out how to do this the DRY wait yet, so repeating myself.  Sorry.
-                # Announce the current scores.
-                score_string = ""
-                for scorer in scores.keys():
-                    score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
-                await bot.send_message(message.channel, "Scores: " + score_string)
-
-                # Tell them the answer.
-                await bot.send_message(message.channel, "Answer was: **" + current_answer +"**.")
-            else:
-                await bot.send_message(message.channel, "You did not initiate this skip "+ str(message.author.name) +"!")
-
+    # Otherwise just process as normal.
     await bot.process_commands(message)
 
 
 @bot.command()
-async def score():
+async def quiz():
     """
-    Can't figure how how to do this the DRY way so I'm duplicating code from on_message() here until I can figure
-    out how to make the bot call its own commands.
+    Handles the behaviour of the .quiz command.  Will select a question at random, then remove it from the list
+    so that it doesn't get asked again in the current round.  If there is already a question pending, it will
+    let the players know and repeat the question in case they missed it.
     :return:
     """
-    global scores
+    global question_pending, current_question, current_answer, lines
 
-    if len(scores) == 0:
-        await bot.say("No scores yet!")
-    else :
-        score_string = ""
-        for scorer in scores.keys():
-            score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
-        await bot.say("Scores: " + score_string)
+    # Make sure we're not waiting for an answer already.
+    if question_pending:
+        await bot.say("You haven't answered my last question yet:")
+        await bot.say(current_question)
+    else:
+        # Pick one of the remaining questions at random.
+        random_line = random.choice(lines)
+
+        # Tokenize the line.
+        tokens = random_line.split('|')
+        question_id = str(tokens[0])
+        current_question = str(tokens[1])
+        current_answer = str(tokens[2])
+
+        # Let's see the answer in the console just for the hell of it.
+        log.info(current_answer.split(','))
+
+        # Verify which question we picked.
+        log.info("Chose question "+ question_id +" at random.")
+
+        # Now remove it from the list so it doesn't get asked again soon.
+        log.info("Removing question from the list.")
+        lines.remove(random_line)
+
+        # Verify that it's gone.
+        remaining_question_ids = []
+        for line in lines:
+            remaining_question_ids.append(line.split('|')[0])
+
+        # We now have a question pending so let's make a note of that.
+        question_pending = True
+
+        # Ask the question.
+        await bot.say(current_question)
+
+
+@bot.command(pass_context=True)
+async def score(ctx):
+    """
+    Show the current score.
+    :return:
+    """
+    await show_scores(ctx.message)
 
 
 @bot.command(pass_context=True)
@@ -178,50 +149,104 @@ async def skip(ctx):
         await bot.say("I haven't asked you a question yet...  (Type '.quiz'.)")
 
 
-@bot.command()
-async def quiz():
+async def check_answer(message):
     """
-    Handles the behaviour of the .quiz command.  Will select a question at random, then remove it from the list
-    so that it doesn't get asked again in the current round.  If there is already a question pending, it will
-    let the players know and repeat the question in case they missed it.
+    Tests if the current message is the answer to the current question.
+    :param message:
     :return:
     """
-    global question_pending, current_question, current_answer, lines
+    global scores, question_pending, pass_pending
 
-    # Make sure we're not waiting for an answer already.
-    if not question_pending:
-            # Pick one of the remaining questions at random.
-            random_line = random.choice(lines)
+    # Check if the current message is the answer to the question.
+    if str(message.content).lower() in str(current_answer.split(',')).lower():
+        log.info("Correct answer given.")
+        await bot.send_message(message.channel, "Correct!")
+        await bot.send_message(message.channel, "This is the part where I give **" +
+                               str(message.author.name) + "** a point.")
 
-            # Tokenize the line.
-            tokens = random_line.split('|')
-            question_id = str(tokens[0])
-            current_question = str(tokens[1])
-            current_answer = str(tokens[2])
+        # Let's just get their name to make the following code a bit cleaner.
+        scorer = str(message.author.name)
 
-            # Let's see the answer in the console just for the hell of it.
-            log.info(current_answer.split(','))
+        # If they're not already in the scores dict, add them.
+        if scorer not in scores.keys():
+            scores[scorer] = 1
 
-            # Verify which question we picked.
-            log.info("Chose question "+ question_id +" at random.")
+        # Otherwise just increase their score by one.
+        else:
+            scores[scorer] = scores[scorer] + 1
 
-            # Now remove it from the list so it doesn't get asked again soon.
-            log.info("Removing question from the list.")
-            lines.remove(random_line)
+        # Let's clean up.
+        question_pending = False
+        pass_pending = False
 
-            # Verify that it's gone.
-            remaining_question_ids = []
-            for line in lines:
-                remaining_question_ids.append(line.split('|')[0])
+        # And show the scores.
+        await show_scores(message)
 
-            # We now have a question pending so let's make a note of that.
-            question_pending = True
+        # Make sure the size of the question pool isn't zero.  If it is, announce winner and reset.
+        if len(lines) == 0:
+            await bot.send_message(message.channel, "All the questions have been answered!")
+            await bot.send_message(message.channel, "Winner is: " + str(max(scores, key=scores.get)))
+            await bot.send_message(message.channel, "Resetting!")
 
-            # Ask the question.
-            await bot.say(current_question)
+            # Add all the questions back in.
+            init_questions()
+
+            # Reset the scores.
+            scores = {}
+
+
+async def skip_question(message):
+    """
+    Skip the current question. Deduct a point from the player skipping.
+    :return:
+    """
+    global question_pending, pass_pending
+
+    # Make sure the person reasponding is the person who initiated the skip.
+    if str(message.author.name) == player_passing:
+        await bot.send_message(message.channel, "Alright.  Skipping this question.  Will deduct one point"
+                                                " from **" + str(message.author.name) + "**.")
+
+        # Let's just get their name to make the following code a bit cleaner.
+        scorer = str(message.author.name)
+
+        # If they're not already on the board, start them with -1 points.
+        if scorer not in scores.keys():
+            scores[scorer] = -1
+
+        # Otherwise just decrease their score by one.
+        else:
+            scores[scorer] = scores[scorer] - 1
+
+        # Let's clean up.
+        question_pending = False
+        pass_pending = False
+
+        # Again, can't figure out how to do this the DRY wait yet, so repeating myself.  Sorry.
+        # Announce the current scores.
+        score_string = ""
+        for scorer in scores.keys():
+            score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
+        await bot.send_message(message.channel, "Scores: " + score_string)
+
+        # Tell them the answer.
+        await bot.send_message(message.channel, "Answer was: **" + current_answer + "**.")
     else:
-        await bot.say("You haven't answered my last question yet:")
-        await bot.say(current_question)
+        await bot.send_message(message.channel, "You did not initiate this skip " + str(message.author.name) + "!")
+
+
+async def show_scores(message):
+    """
+    Announce the current scores.
+    :return:
+    """
+    if len(scores) == 0:
+        await bot.say("No scores yet!")
+    else:
+        score_string = ""
+        for scorer in scores.keys():
+            score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
+        await bot.send_message(message.channel, "Scores: " + score_string)
 
 
 def init_questions():

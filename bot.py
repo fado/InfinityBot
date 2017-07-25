@@ -207,12 +207,9 @@ async def check_answer(message):
     await bot.send_message(message.channel, "Correct!")
 
     # If it was a multiple choice question, give the other options.
-    # This is so ugly, there has to be a better way.  But I'm tired.
     if multiple_answers:
         options = current_answer.split(',')
-        log.info("Options before removing: " + str(options))
         options.remove(message.content)
-        log.info("Options after removing: " + str(options))
         output = ""
 
         if len(options) > 1:

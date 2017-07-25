@@ -42,6 +42,9 @@ current_question = ""
 current_answer = ""
 scores = {}
 pass_pending = False
+multiple_answers = False
+locked_out = []
+resetting = False
 
 
 @bot.event
@@ -86,13 +89,15 @@ async def quiz():
     let the players know and repeat the question in case they missed it.
     :return:
     """
-    global question_pending, current_question, current_answer, lines
+    global question_pending, current_question, current_answer, lines, multiple_answers, multiple_choice, resetting
 
     # Make sure we're not waiting for an answer already.
     if question_pending:
         await bot.say("You haven't answered my last question yet:")
         await bot.say(current_question)
-    else:
+    # And make sure we're not in the middle of a reset.
+    elif not resetting:
+
         # Pick one of the remaining questions at random.
         random_line = random.choice(lines)
 
@@ -101,6 +106,11 @@ async def quiz():
         question_id = str(tokens[0])
         current_question = str(tokens[1])
         current_answer = str(tokens[2])
+
+        # Check if there are multiple answers to this question.
+        if len(str(current_answer).split(',')) > 1:
+            log.info("Multiple answer question selected.")
+            multiple_answers = True
 
         # Let's see the answer in the console just for the hell of it.
         log.info(current_answer.split(','))
@@ -142,9 +152,9 @@ async def skip(ctx):
     global pass_pending, player_passing
 
     if question_pending:
-        await bot.say("Are you sure you want to skip this question?  It will cost you 1 point!  (Type 'yes' to skip.)")
         pass_pending = True
         player_passing = ctx.message.author.name
+        await bot.say("Are you sure you want to skip this question?  It will cost you 1 point!  (Type 'yes' to skip.)")
     else:
         await bot.say("I haven't asked you a question yet...  (Type '.quiz'.)")
 
@@ -155,46 +165,77 @@ async def check_answer(message):
     :param message:
     :return:
     """
-    global scores, question_pending, pass_pending
+    global scores, question_pending, pass_pending, locked_out, resetting
+    options = ["free", "minor", "standard"]
 
-    # Check if the current message is the answer to the question.
-    if str(message.content).lower() in str(current_answer.split(',')).lower():
+    # Check if we're dealing with a multiple choice question.
+    if current_answer in options:
 
-        # Let's just get their name to make the following code a bit cleaner.
-        scorer = str(message.author.name)
+        # If the player has already guessed, don't let them guess again.
+        if str(message.content).lower() in options and str(message.author.name) in locked_out:
+            await bot.send_message(message.channel, "You already had a guess **"+ message.author.name +"**.")
+            return
 
-        # If they're not already in the scores dict, add them.
-        if scorer not in scores.keys():
-            scores[scorer] = 1
+        # If the current message is one of the options but not the current answer, lock the player out.
+        if str(message.content).lower() in options and str(message.content).lower() != current_answer:
+            log.info("Adding "+ message.author.name +" to locked out list.")
+            locked_out.append(message.author.name)
 
-        # Otherwise just increase their score by one.
-        else:
-            scores[scorer] = scores[scorer] + 1
+    # If we don't have the answer to the question, return.
+    if str(message.content).lower() not in str(current_answer.split(',')).lower():
+        return
 
-        # Let's clean up.
-        question_pending = False
-        pass_pending = False
+    # If we've gotten this far, we have a correct answer.
+    # Let's just get their name to make the following code a bit cleaner.
+    scorer = str(message.author.name)
 
-        # And show the scores.
-        await show_scores(message)
+    # If they're not already in the scores dict, add them.
+    if scorer not in scores.keys():
+        scores[scorer] = 1
 
-        # Report that the correct answer has been given.
-        log.info("Correct answer given.")
-        await bot.send_message(message.channel, "Correct!")
-        await bot.send_message(message.channel, "This is the part where I give **" +
-                               str(message.author.name) + "** a point.")
+    # Otherwise just increase their score by one.
+    else:
+        scores[scorer] = scores[scorer] + 1
 
-        # Make sure the size of the question pool isn't zero.  If it is, announce winner and reset.
+    # Let's clean up.
+    question_pending = False
+    pass_pending = False
+    locked_out = []
+
+    # Report that the correct answer has been given.
+    log.info("Correct answer given.")
+    await bot.send_message(message.channel, "Correct!")
+
+    # If it was a multiple choice question, give the other options.
+    if multiple_answers:
+        options = current_answer.split(',')
+        options.remove(str(message.content))
+        await bot.send_message(message.channel, "You could also have said **"+ options[0] +"**.")
+
+    # Report that points have been awarded.
+    await bot.send_message(message.channel, "This is the part where I give **" +
+                           str(message.author.name) + "** a point.")
+
+    # And show the scores.
+    await show_scores(message)
+
+    # Make sure the size of the question pool isn't zero.  If it is, announce winner and reset.
+    if __name__ == '__main__':
         if len(lines) == 0:
-            await bot.send_message(message.channel, "All the questions have been answered!")
-            await bot.send_message(message.channel, "Winner is: " + str(max(scores, key=scores.get)))
-            await bot.send_message(message.channel, "Resetting!")
+            # Let the bot know we're doing a reset.
+            resetting = True
+
+            await bot.send_message(message.channel, "All the questions have been answered!\nWinner is: **" +
+                                   str(max(scores, key=scores.get)) +"**.\nResetting!")
 
             # Add all the questions back in.
             init_questions()
 
             # Reset the scores.
             scores = {}
+
+            # Let the bot know we're finished with the reset.
+            resetting = False
 
 
 async def skip_question(message):

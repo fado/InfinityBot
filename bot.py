@@ -159,10 +159,6 @@ async def check_answer(message):
 
     # Check if the current message is the answer to the question.
     if str(message.content).lower() in str(current_answer.split(',')).lower():
-        log.info("Correct answer given.")
-        await bot.send_message(message.channel, "Correct!")
-        await bot.send_message(message.channel, "This is the part where I give **" +
-                               str(message.author.name) + "** a point.")
 
         # Let's just get their name to make the following code a bit cleaner.
         scorer = str(message.author.name)
@@ -181,6 +177,12 @@ async def check_answer(message):
 
         # And show the scores.
         await show_scores(message)
+
+        # Report that the correct answer has been given.
+        log.info("Correct answer given.")
+        await bot.send_message(message.channel, "Correct!")
+        await bot.send_message(message.channel, "This is the part where I give **" +
+                               str(message.author.name) + "** a point.")
 
         # Make sure the size of the question pool isn't zero.  If it is, announce winner and reset.
         if len(lines) == 0:

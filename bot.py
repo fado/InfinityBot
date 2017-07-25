@@ -18,9 +18,9 @@
 
     https://opensource.org/licenses/GPL-3.0
 """
-
 import discord
 import logging
+import operator
 import os
 import random
 import time
@@ -165,7 +165,7 @@ async def check_answer(message):
     :param message:
     :return:
     """
-    global scores, question_pending, pass_pending, locked_out, resetting
+    global scores, question_pending, pass_pending, locked_out, resetting, multiple_answers
     options = ["free", "minor", "standard"]
 
     # Check if we're dealing with a multiple choice question.
@@ -207,10 +207,26 @@ async def check_answer(message):
     await bot.send_message(message.channel, "Correct!")
 
     # If it was a multiple choice question, give the other options.
+    # This is so ugly, there has to be a better way.  But I'm tired.
     if multiple_answers:
         options = current_answer.split(',')
-        options.remove(str(message.content))
-        await bot.send_message(message.channel, "You could also have said **"+ options[0] +"**.")
+        log.info("Options before removing: " + str(options))
+        options.remove(message.content)
+        log.info("Options after removing: " + str(options))
+        output = ""
+
+        if len(options) > 1:
+            options[-1] = "or "+ options[-1]
+            output = ", ".join(options)
+        else:
+            output = options[0]
+
+        # Finish the cleanup.
+        multiple_answers = False
+
+        # Announce the other possible answers.
+        await bot.send_message(message.channel, "You could also have said "+ output +".")
+
 
     # Report that points have been awarded.
     await bot.send_message(message.channel, "This is the part where I give **" +
@@ -220,22 +236,21 @@ async def check_answer(message):
     await show_scores(message)
 
     # Make sure the size of the question pool isn't zero.  If it is, announce winner and reset.
-    if __name__ == '__main__':
-        if len(lines) == 0:
-            # Let the bot know we're doing a reset.
-            resetting = True
+    if len(lines) == 0:
+        # Let the bot know we're doing a reset.
+        resetting = True
 
-            await bot.send_message(message.channel, "All the questions have been answered!\nWinner is: **" +
-                                   str(max(scores, key=scores.get)) +"**.\nResetting!")
+        await bot.send_message(message.channel, "All the questions have been answered!\n\nWinner is: **" +
+                               str(max(scores, key=scores.get)) +"**.\n\nResetting!")
 
-            # Add all the questions back in.
-            init_questions()
+        # Add all the questions back in.
+        init_questions()
 
-            # Reset the scores.
-            scores = {}
+        # Reset the scores.
+        scores = {}
 
-            # Let the bot know we're finished with the reset.
-            resetting = False
+        # Let the bot know we're finished with the reset.
+        resetting = False
 
 
 async def skip_question(message):
@@ -287,8 +302,9 @@ async def show_scores(message):
         await bot.say("No scores yet!")
     else:
         score_string = ""
-        for scorer in scores.keys():
-            score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
+        sorted_scores = sorted(scores.items(), key=operator.itemgetter(1))
+        for score in sorted_scores:
+            score_string += "**" + str(score[0]) + "**: " + str(score[1]) + " "
         await bot.send_message(message.channel, "Scores: " + score_string)
 
 

@@ -276,13 +276,10 @@ async def skip_question(message):
         # Let's clean up.
         question_pending = False
         pass_pending = False
+        locked_out = []
 
-        # Again, can't figure out how to do this the DRY wait yet, so repeating myself.  Sorry.
         # Announce the current scores.
-        score_string = ""
-        for scorer in scores.keys():
-            score_string += "**" + scorer + "**: " + str(scores[scorer]) + " "
-        await bot.send_message(message.channel, "Scores: " + score_string)
+        await show_scores(message)
 
         # Tell them the answer.
         await bot.send_message(message.channel, "Answer was: **" + current_answer + "**.")

@@ -182,7 +182,7 @@ async def check_answer(message):
             locked_out.append(message.author.name)
 
     # If we don't have the answer to the question, return.
-    if str(message.content).lower() not in str(current_answer.split(',')).lower():
+    if str(message.content).lower() != str(current_answer.split(',')).lower():
         return
 
     # If we've gotten this far, we have a correct answer.

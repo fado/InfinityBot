@@ -209,7 +209,7 @@ async def check_answer(message):
     # If it was a multiple choice question, give the other options.
     if multiple_answers:
         options = current_answer.split(',')
-        options.remove(message.content)
+        options.remove(str(message.content).lower())
         output = ""
 
         if len(options) > 1:

@@ -182,12 +182,7 @@ async def check_answer(message):
             locked_out.append(message.author.name)
 
     # If we don't have the answer to the question, return.
-    correct = False
-    for answer in str(current_answer).lower().split(','):
-        if str(message.content).lower() == answer:
-            correct = True
-
-    if not correct:
+    if str(message.content).lower() not in str(current_answer).lower().split(','):
         return
 
     # If we've gotten this far, we have a correct answer.

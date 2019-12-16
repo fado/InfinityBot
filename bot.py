@@ -1,6 +1,6 @@
 """
     InfinityBot - A Discord bot to help people learn the rules of the Infinity RPG.
-    Copyright (C) 2017 Padraig Donnelly
+    Copyright (C) 2019 Padraig Donnelly
     pdonnelly@runbox.com
 
     This program is free software: you can redistribute it and/or modify
@@ -82,7 +82,7 @@ async def on_message(message):
 
 
 @bot.command()
-async def quiz():
+async def quiz(ctx):
     """
     Handles the behaviour of the .quiz command.  Will select a question at random, then remove it from the list
     so that it doesn't get asked again in the current round.  If there is already a question pending, it will
@@ -131,10 +131,10 @@ async def quiz():
         question_pending = True
 
         # Ask the question.
-        await bot.say(current_question)
+        await ctx.send(current_question)
 
 
-@bot.command(pass_context=True)
+@bot.command()
 async def score(ctx):
     """
     Show the current score.
@@ -143,7 +143,7 @@ async def score(ctx):
     await show_scores(ctx.message)
 
 
-@bot.command(pass_context=True)
+@bot.command()
 async def skip(ctx):
     """
     Allows the player to skip a question.
@@ -154,9 +154,9 @@ async def skip(ctx):
     if question_pending:
         pass_pending = True
         player_passing = ctx.message.author.name
-        await bot.say("Are you sure you want to skip this question?  It will cost you 1 point!  (Type 'yes' to skip.)")
+        await ctx.send("Are you sure you want to skip this question?  It will cost you 1 point!  (Type 'yes' to skip.)")
     else:
-        await bot.say("I haven't asked you a question yet...  (Type '.quiz'.)")
+        await ctx.send("I haven't asked you a question yet...  (Type '.quiz'.)")
 
 
 async def check_answer(message):
@@ -173,7 +173,7 @@ async def check_answer(message):
 
         # If the player has already guessed, don't let them guess again.
         if str(message.content).lower() in options and str(message.author.name) in locked_out:
-            await bot.send_message(message.channel, "You already had a guess **"+ message.author.name +"**.")
+            await message.channel.send("You already had a guess **"+ message.author.name +"**.")
             return
 
         # If the current message is one of the options but not the current answer, lock the player out.
@@ -204,7 +204,7 @@ async def check_answer(message):
 
     # Report that the correct answer has been given.
     log.info("Correct answer given.")
-    await bot.send_message(message.channel, "Correct!")
+    await message.channel.send("Correct!")
 
     # If it was a multiple choice question, give the other options.
     if multiple_answers:
@@ -222,11 +222,11 @@ async def check_answer(message):
         multiple_answers = False
 
         # Announce the other possible answers.
-        await bot.send_message(message.channel, "You could also have said "+ output +".")
+        await message.channel.send("You could also have said "+ output +".")
 
 
     # Report that points have been awarded.
-    await bot.send_message(message.channel, "This is the part where I give **" +
+    await message.channel.send("This is the part where I give **" +
                            str(message.author.name) + "** a point.")
 
     # And show the scores.
@@ -237,7 +237,7 @@ async def check_answer(message):
         # Let the bot know we're doing a reset.
         resetting = True
 
-        await bot.send_message(message.channel, "All the questions have been answered!\n\nWinner is: **" +
+        await message.channel.send("All the questions have been answered!\n\nWinner is: **" +
                                str(max(scores, key=scores.get)) +"**.\n\nResetting!")
 
         # Add all the questions back in.
@@ -259,7 +259,7 @@ async def skip_question(message):
 
     # Make sure the person reasponding is the person who initiated the skip.
     if str(message.author.name) == player_passing:
-        await bot.send_message(message.channel, "Alright.  Skipping this question.  Will deduct one point"
+        await message.channel.send("Alright.  Skipping this question.  Will deduct one point"
                                                 " from **" + str(message.author.name) + "**.")
 
         # Let's just get their name to make the following code a bit cleaner.
@@ -282,9 +282,9 @@ async def skip_question(message):
         await show_scores(message)
 
         # Tell them the answer.
-        await bot.send_message(message.channel, "Answer was: **" + current_answer + "**.")
+        await message.channel.send("Answer was: **" + current_answer + "**.")
     else:
-        await bot.send_message(message.channel, "You did not initiate this skip " + str(message.author.name) + "!")
+        await message.channel.send("You did not initiate this skip " + str(message.author.name) + "!")
 
 
 async def show_scores(message):
@@ -293,13 +293,13 @@ async def show_scores(message):
     :return:
     """
     if len(scores) == 0:
-        await bot.say("No scores yet!")
+        await message.channel.send("No scores yet!")
     else:
         score_string = ""
         sorted_scores = sorted(scores.items(), key=operator.itemgetter(1))
         for score in sorted_scores:
             score_string += "**" + str(score[0]) + "**: " + str(score[1]) + " "
-        await bot.send_message(message.channel, "Scores: " + score_string)
+        await message.channel.send("Scores: " + score_string)
 
 
 def init_questions():

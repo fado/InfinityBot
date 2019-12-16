@@ -227,7 +227,7 @@ async def check_answer(message):
 
     # Report that points have been awarded.
     await message.channel.send("This is the part where I give **" +
-                           str(message.author.name) + "** a point.")
+                               str(message.author.name) + "** a point.")
 
     # And show the scores.
     await show_scores(message)
@@ -238,7 +238,7 @@ async def check_answer(message):
         resetting = True
 
         await message.channel.send("All the questions have been answered!\n\nWinner is: **" +
-                               str(max(scores, key=scores.get)) +"**.\n\nResetting!")
+                                   str(max(scores, key=scores.get)) +"**.\n\nResetting!")
 
         # Add all the questions back in.
         init_questions()
@@ -259,8 +259,8 @@ async def skip_question(message):
 
     # Make sure the person reasponding is the person who initiated the skip.
     if str(message.author.name) == player_passing:
-        await message.channel.send("Alright.  Skipping this question.  Will deduct one point"
-                                                " from **" + str(message.author.name) + "**.")
+        await message.channel.send("Alright.  Skipping this question.  Will deduct one point" 
+                                   " from **" + str(message.author.name) + "**.")
 
         # Let's just get their name to make the following code a bit cleaner.
         scorer = str(message.author.name)

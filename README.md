@@ -1,5 +1,7 @@
 # InfinityBot
-A Discord bot to help people learn the rules of the Infinity RPG.  Requires Python 3.  It is assumed that you know how to create a bot on the Discord side of things and get an API token.  You can find the guide that I followed [here](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token). It is very unlikely that I will respond to support requests.  I coded this up while drunk on a Friday night and then fixed it hungover on a Saturday morning.  It's probably not great code, but it's functional.  Go forth and make it better.
+A Discord bot to help people learn the rules of the Infinity RPG.  Requires Python 3.  It is assumed that you know how to create a bot on the Discord side of things and get an API token.  You can find the guide that I followed [here](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token), but bear in mind that it is now out of date. Breaking changes have been made to the Discord library for Python. 
+
+It is very unlikely that I will respond to support requests.  I coded this up while drunk on a Friday night and then fixed it hungover on a Saturday morning.  It's probably not great code, but it's functional.  Go forth and make it better.
 
 To get the bot up and running on Linux, it's recommended to use <code>virtualenv</code> to set up its own environment.  To get the bot up and running on Windows, you're on your own.  Sorry.  :(
 
